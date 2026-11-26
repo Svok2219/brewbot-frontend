@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Building2, MapPin, WalletCards } from "lucide-react"
+import { Building2, MapPin, UserRound } from "lucide-react"
 import useSWR from "swr"
 import { BrewBotLogo } from "@/components/brewbot-logo"
 import type { BrewbotCampaign } from "@/lib/campaigns"
@@ -72,7 +72,7 @@ export function DeviceStorefront({ deviceId, universityName, locationName, initi
           <div className="kiosk-brand-stack">
             <BrewBotLogo className="kiosk-brand" />
             <Link className="kiosk-wallet-fab" href={`/recharge?deviceId=${encodeURIComponent(deviceId)}`} aria-label="Open RFID wallet">
-              <WalletCards aria-hidden="true" />
+              <UserRound aria-hidden="true" />
             </Link>
           </div>
         </div>
