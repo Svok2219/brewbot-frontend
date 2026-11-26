@@ -139,7 +139,7 @@ export function MaintainerAdmin() {
           <div className="ops-maintainer-grid">
             <section className="ops-card ops-rfid-form-card" aria-labelledby="rfid-register-heading">
               <div className="ops-card-heading">
-                <div><p className="ops-eyebrow">RFID ACCESS</p><h2 id="rfid-register-heading">Register a user</h2><p>Save a name and card directly to this device.</p></div>
+                <div><p className="ops-eyebrow">RFID ACCESS</p><h2 id="rfid-register-heading">Register a user</h2><p>Names can repeat; each RFID card must be unique for this device.</p></div>
                 <span className="ops-form-icon"><UserRoundPlus aria-hidden="true" /></span>
               </div>
               <form className="ops-rfid-form" onSubmit={registerMember}>

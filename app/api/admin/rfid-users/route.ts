@@ -62,16 +62,16 @@ export async function POST(request: NextRequest) {
       .where(and(eq(devices.deviceId, deviceId), eq(devices.isActive, true))).limit(1)
     if (!device) return NextResponse.json({ error: "This device is not active." }, { status: 400 })
 
-    const [duplicate] = await db.select({ id: rfidUsers.id }).from(rfidUsers).where(and(
+    const [duplicateCard] = await db.select({ id: rfidUsers.id }).from(rfidUsers).where(and(
       eq(rfidUsers.deviceId, deviceId),
       eq(rfidUsers.isActive, true),
-      sql`(lower(trim(${rfidUsers.cardId})) = ${cardId.toLowerCase()} OR lower(trim(${rfidUsers.userName})) = ${userName.toLowerCase()})`,
+      sql`lower(trim(${rfidUsers.cardId})) = ${cardId.toLowerCase()}`,
     )).limit(1)
-    if (duplicate) return NextResponse.json({ error: "That user name or card is already active for this device." }, { status: 409 })
+    if (duplicateCard) return NextResponse.json({ error: "That RFID card is already active for this device." }, { status: 409 })
 
     const [user] = await db.insert(rfidUsers).values({ deviceId, userName, cardId })
       .onConflictDoNothing().returning({ id: rfidUsers.id })
-    if (!user) return NextResponse.json({ error: "That user name or card is already active for this device." }, { status: 409 })
+    if (!user) return NextResponse.json({ error: "That RFID card is already active for this device." }, { status: 409 })
     return NextResponse.json({ user }, { status: 201 })
   } catch {
     return NextResponse.json({ error: "RFID user could not be registered." }, { status: 503 })

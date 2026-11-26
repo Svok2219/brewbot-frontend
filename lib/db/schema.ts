@@ -70,7 +70,6 @@ export const rfidUsers = pgTable("rfid_users", {
   walletBalancePaisa: integer("wallet_balance_paisa").notNull().default(0),
 }, (table) => [
   uniqueIndex("rfid_users_active_device_card_key").on(table.deviceId, table.cardId).where(sql`${table.isActive} = true`),
-  uniqueIndex("rfid_users_device_name_idx").on(table.deviceId, sql`lower(trim(${table.userName}))`).where(sql`${table.isActive} = true`),
 ])
 
 export type RfidWalletTopupStatus = "pending" | "paid" | "failed" | "cancelled"
