@@ -1,4 +1,5 @@
 import { eq, sql } from "drizzle-orm"
+import { setTimeout } from "node:timers/promises"
 import { db } from "@/lib/db"
 import { campaigns } from "@/lib/db/schema"
 
@@ -12,6 +13,10 @@ export type BrewbotCampaign = {
 const PRIVATE_ARTWORK_PREFIX = "private-blob:"
 export const PRIVATE_CAMPAIGN_ARTWORK_URL = "/api/campaign/artwork"
 const privateArtworkPathPattern = /^campaigns\/[0-9a-f-]{36}\.(?:avif|gif|jpg|png|webp)$/i
+const retryableConnectionCodes = new Set([
+  "ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH", "EPIPE", "EAI_AGAIN",
+  "08001", "08006", "57P01", "57P02", "57P03",
+])
 
 export function storePrivateCampaignArtworkPath(pathname: string) {
   if (!privateArtworkPathPattern.test(pathname)) throw new Error("Invalid campaign artwork path.")
@@ -34,7 +39,19 @@ function serializeCampaign(campaign: typeof campaigns.$inferSelect): BrewbotCamp
   }
 }
 
-export async function getActiveCampaignPrivateArtworkPath() {
+function isRetryableConnectionError(error: unknown): boolean {
+  while (error instanceof Error) {
+    const code = "code" in error ? error.code : undefined
+    if (typeof code === "string" && retryableConnectionCodes.has(code)) return true
+    if (error.message === "Connection terminated due to connection timeout" ||
+        error.message === "Connection terminated unexpectedly" ||
+        error.message === "timeout exceeded when trying to connect") return true
+    error = error.cause
+  }
+  return false
+}
+
+async function readActiveCampaignPrivateArtworkPath() {
   const [campaign] = await db
     .select({ artworkUrl: campaigns.artworkUrl })
     .from(campaigns)
@@ -42,6 +59,16 @@ export async function getActiveCampaignPrivateArtworkPath() {
     .limit(1)
 
   return parsePrivateCampaignArtworkPath(campaign?.artworkUrl ?? null)
+}
+
+export async function getActiveCampaignPrivateArtworkPath() {
+  try {
+    return await readActiveCampaignPrivateArtworkPath()
+  } catch (error) {
+    if (!isRetryableConnectionError(error)) throw error
+    await setTimeout(200)
+    return readActiveCampaignPrivateArtworkPath()
+  }
 }
 
 export async function getActiveCampaign() {

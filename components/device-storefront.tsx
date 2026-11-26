@@ -36,12 +36,14 @@ export function DeviceStorefront({ deviceId, universityName, locationName, initi
   const router = useRouter()
   const { data, error } = useSWR<ProductResponse>("/api/products", fetchProducts, {
     fallbackData: { products: initialProducts },
-    refreshInterval: 5000,
+    refreshInterval: 15000,
+    revalidateOnMount: false,
     revalidateOnFocus: true,
   })
   const { data: campaignData } = useSWR<CampaignResponse>("/api/campaign", fetchCampaign, {
     fallbackData: { campaign: initialCampaign },
-    refreshInterval: 5000,
+    refreshInterval: 30000,
+    revalidateOnMount: false,
     revalidateOnFocus: true,
   })
   const products = data?.products ?? []
