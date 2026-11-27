@@ -23,6 +23,7 @@
   --radius-xl: calc(var(--radius) * 1.4);
 }
 
+
 :root { color-scheme: light; --background: #f7f7f2; --foreground: #222a23; --card: #fff; --card-foreground: #222a23; --primary: #264b37; --primary-foreground: #fff; --secondary: #f0f1ea; --muted: #f0f1ea; --muted-foreground: #73796e; --border: #e5e7df; --input: #e5e7df; --ring: #779581; --radius: .8rem; }
 * { box-sizing: border-box; }
 html { min-height: 100%; }
@@ -35,6 +36,7 @@ a { color: inherit; text-decoration: none; }
 .storefront-shell { min-height: 100vh; padding-bottom: 92px; background: #f7f7f2; }
 .site-header { height: 76px; max-width: 1180px; margin: auto; padding: 0 38px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8e9e2; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 750; letter-spacing: -1px; }
+.maintenance-page .brand .brewbot-logo { width: 119px; }
 .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: #254b37; color: #fff; font-size: 18px; font-weight: 700; }
 .brand-dot { color: #b8753e; }
 .header-links { display: flex; align-items: center; gap: 25px; color: #7d8178; font-size: 12px; font-weight: 600; }
@@ -377,6 +379,7 @@ a { color: inherit; text-decoration: none; }
   .storefront-shell { padding-bottom: 95px; }
   .site-header { height: 62px; padding: 0 20px; }
   .brand { font-size: 19px; }
+  .maintenance-page .brand .brewbot-logo { width: 119px; }
   .header-links { gap: 14px; font-size: 10px; }
   .storefront-content { padding: 0 18px; }
   .welcome-row { align-items: start; padding: 35px 0 20px; }
@@ -482,7 +485,7 @@ a { color: inherit; text-decoration: none; }
 .kiosk-location { position: relative; margin-bottom: 10px; padding: 14px; border-radius: 10px; background: #34383e; color: #fff; box-shadow: 0 5px 9px #24283120; }
 .kiosk-location-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .kiosk-location-details { min-width: 0; }
-.kiosk-brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; color: #fff; }
+.kiosk-brand { display: inline-flex; flex: 0 0 auto; align-items: center; }
 .kiosk-location-title { display: flex; align-items: center; gap: 8px; }
 .kiosk-building-icon { width: 24px; height: 26px; color: #fff; stroke-width: 2.5; }
 .kiosk-location-title h1 { overflow: hidden; margin: 0; font-size: 17px; line-height: 1.15; letter-spacing: -.5px; text-overflow: ellipsis; white-space: nowrap; }
@@ -511,7 +514,6 @@ a { color: inherit; text-decoration: none; }
   .kiosk-location { padding: 12px 10px; }
   .kiosk-location-header { gap: 7px; }
   .kiosk-location-title h1 { font-size: 15px; }
-  .kiosk-brand { gap: 4px; }
   .kiosk-product { gap: 7px; padding: 7px; }
   .kiosk-product-image { width: 56px; height: 56px; flex-basis: 56px; }
   .kiosk-product-info h2 { font-size: 12px; }
@@ -561,6 +563,10 @@ a { color: inherit; text-decoration: none; }
 .checkout-payment-actions { position: fixed; right: 0; bottom: 0; left: 0; z-index: 6; display: flex; flex-direction: column; gap: 9px; max-width: 520px; margin: 0 auto; padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(180deg, #f0f1f500, #f0f1f5 18%); }
 .checkout-payment-actions > button { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 49px; border: 0; border-radius: 14px; color: white; font-size: 16px; font-weight: 750; }
 .checkout-rfid-button { background: #4141f5; }
+.wallet-payment-action { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.wallet-payment-action > button { width: 100%; }
+.wallet-payment-action .checkout-message { margin: 0; color: #881337; font-size: 12px; line-height: 1.4; }
+.wallet-payment-action .checkout-message a { color: #4141f5; font-weight: 700; }
 .checkout-pay-button { background: #e80f68; }
 .checkout-message { margin: 0; padding: 6px 10px; border-radius: 7px; background: white; color: #555d67; text-align: center; font-size: 10px; }
 
@@ -626,7 +632,7 @@ a { color: inherit; text-decoration: none; }
 /* RFID wallet recharge */
 .recharge-page { min-height: 100svh; padding: 0 18px 40px; background: #f7f7f2; color: #222a23; }
 .recharge-header { display: flex; align-items: center; gap: 13px; max-width: 980px; height: 68px; margin: 0 auto; border-bottom: 1px solid #e5e7df; }
-.recharge-header .brewbot-word { font-size: 17px; }
+.recharge-header .brewbot-logo { flex: 0 0 100px; width: 100px; }
 .recharge-back { display: grid; flex: 0 0 36px; place-items: center; width: 36px; height: 36px; border: 1px solid #e5e7df; border-radius: 10px; color: #536254; }
 .recharge-back svg { width: 17px; height: 17px; }
 .recharge-header-label { margin-left: auto; color: #657064; font-size: 10px; font-weight: 750; letter-spacing: 1.2px; }
@@ -682,16 +688,10 @@ a { color: inherit; text-decoration: none; }
 .kiosk-topup-link svg { width: 16px; height: 16px; color: #f3bf62; }
 
 /* Shared BrewBot identity */
-.brewbot-logo { display: inline-flex; align-items: center; gap: 8px; color: #20352a; }
-.brewbot-mark { width: 30px; height: 30px; fill: none; stroke: #315c40; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
-.brewbot-eye { fill: #315c40; stroke: none; }
-.brewbot-word { color: currentColor; font-size: 19px; font-weight: 760; letter-spacing: -.8px; }
-.brewbot-word > span { color: #5d8062; }
-.kiosk-brand { color: #fff; }
-.kiosk-brand .brewbot-mark { width: 25px; height: 25px; stroke: #dedede; stroke-width: 1.5; }
-.kiosk-brand .brewbot-eye { fill: #dedede; }
-.kiosk-brand .brewbot-word { font-size: 14px; letter-spacing: -.45px; }
-.kiosk-brand .brewbot-word > span { color: #dedede; }
+.brewbot-logo { display: inline-flex; flex: 0 1 auto; align-items: center; width: 108px; max-width: 100%; overflow: hidden; }
+.brewbot-logo-image { display: block; width: 100%; height: auto; object-fit: contain; }
+.kiosk-brand { flex: 0 0 auto; width: fit-content; max-width: 100%; }
+.kiosk-brand .brewbot-logo-image { width: 84px; max-width: 100%; filter: grayscale(1) invert(1); }
 .kiosk-screen { padding-bottom: 88px; }
 .kiosk-wallet-fab { right: max(16px, calc((100vw - 420px) / 2 + 16px)); }
 .kiosk-wallet-fab:focus-visible { outline: 3px solid #4b6578; outline-offset: 3px; }
@@ -701,8 +701,7 @@ a { color: inherit; text-decoration: none; }
 .recharge-page, .maintenance-page, .ops-shell, .admin-auth-page { filter: grayscale(1); }
 .ops-sidebar { position: sticky; top: 0; display: flex; flex: 0 0 222px; flex-direction: column; min-height: 100vh; padding: 23px 15px 16px; border-right: 1px solid var(--ops-line); background: #fff; }
 .ops-brand { display: inline-flex; align-self: flex-start; margin: 0 5px 28px; text-decoration: none; }
-.ops-brand .brewbot-mark { width: 29px; height: 29px; }
-.ops-brand .brewbot-word { font-size: 19px; }
+.ops-brand .brewbot-logo { width: 108px; }
 .ops-workspace { display: flex; align-items: center; gap: 10px; padding: 11px 9px; border: 1px solid var(--ops-line); border-radius: 10px; }
 .ops-workspace-mark { display: grid; flex: 0 0 32px; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #eef3ed; color: #45684c; }
 .ops-workspace-mark svg { width: 16px; height: 16px; }
@@ -740,6 +739,9 @@ a { color: inherit; text-decoration: none; }
 .ops-page-heading .ops-eyebrow { margin-bottom: 7px; }
 .ops-page-heading h1 { margin: 0; font-size: 24px; letter-spacing: -.8px; }
 .ops-page-heading > div > p:last-child { margin: 6px 0 0; color: var(--ops-muted); font-size: 11px; }
+.ops-heading-actions { display: flex; align-items: flex-end; gap: 8px; }
+.ops-device-selector { display: flex; flex-direction: column; gap: 4px; color: var(--ops-muted); font-size: 8px; font-weight: 650; }
+.ops-device-selector select { max-width: min(320px, 42vw); min-height: 34px; padding: 6px 9px; border: 1px solid var(--ops-line); border-radius: 8px; background: #fff; color: var(--ops-ink); font: inherit; font-size: 9px; }
 .ops-storefront-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--ops-line); border-radius: 8px; background: #fff; color: #526b57; font-size: 9px; font-weight: 650; text-decoration: none; white-space: nowrap; }
 .ops-storefront-link:hover { background: #f6f8f5; }
 .ops-storefront-link svg, .ops-text-button svg { width: 13px; height: 13px; }
@@ -869,19 +871,44 @@ a { color: inherit; text-decoration: none; }
 .ops-cancel-confirm-button { min-height: 28px; padding: 0 7px; border: 0; border-radius: 6px; background: #a14f3e; color: #fff; font: inherit; font-size: 8px; cursor: pointer; }
 .ops-empty { padding: 12px 0; color: var(--ops-muted); font-size: 10px; }
 .ops-page-footnote { margin: 11px 2px; color: #929d94; font-size: 8px; }
+.ops-device-manager > .ops-card { margin-bottom: 12px; }
+.ops-device-form { display: flex; flex-direction: column; gap: 8px; margin-top: 13px; }
+.ops-device-form label { color: #657369; font-size: 9px; font-weight: 600; }
+.ops-device-form input, .ops-device-maintainer-form input { width: 100%; min-width: 0; min-height: 34px; padding: 8px 9px; border: 1px solid #dfe6df; border-radius: 7px; background: #fff; color: #26372b; font: inherit; font-size: 10px; }
+.ops-device-form input:focus, .ops-device-maintainer-form input:focus { outline: 2px solid #a8c8ab; outline-offset: 1px; }
+.ops-form-hint { margin: 0; color: var(--ops-muted); font-size: 8px; line-height: 1.5; }
+.ops-device-form .ops-button-primary { align-self: flex-start; margin-top: 4px; }
+.ops-device-list { margin-top: 10px; }
+.ops-device-entry { padding: 12px 0; border-top: 1px solid #eef1ed; }
+.ops-device-entry-heading { display: flex; align-items: center; gap: 9px; }
+.ops-device-entry-heading > div { min-width: 0; flex: 1; }
+.ops-device-entry-heading strong, .ops-device-entry-heading span { display: block; }
+.ops-device-entry-heading strong { font-size: 10px; }
+.ops-device-entry-heading span { margin-top: 3px; color: var(--ops-muted); font-size: 9px; }
+.ops-device-entry-heading code { color: #78847a; font: 9px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ops-device-entry-heading .ops-text-button { text-decoration: none; white-space: nowrap; }
+.ops-device-maintainer-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: center; gap: 8px; margin: 10px 0 0 42px; }
+.ops-device-maintainer-form > div { grid-column: 1 / -1; }
+.ops-device-maintainer-form > div strong, .ops-device-maintainer-form > div span { display: block; }
+.ops-device-maintainer-form > div strong { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.ops-device-maintainer-form > div span { margin-top: 3px; color: var(--ops-muted); font-size: 8px; }
+.ops-device-maintainer-form .ops-button-secondary { min-height: 32px; padding: 0 9px; border: 1px solid var(--ops-line); border-radius: 7px; background: #fff; color: #536b57; font: inherit; font-size: 9px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.ops-device-maintainer-form .ops-button-secondary:disabled { opacity: .65; cursor: wait; }
+.ops-device-form-feedback { grid-column: 2 / -1; color: #466d4c; font-size: 8px; }
+.ops-visually-hidden { position: absolute; overflow: hidden; width: 1px; height: 1px; padding: 0; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (max-width: 900px) {
   .ops-sidebar { flex-basis: 198px; padding-right: 12px; padding-left: 12px; }
   .ops-content { padding-right: 20px; padding-left: 20px; }
   .ops-topbar { padding-right: 20px; padding-left: 20px; }
   .ops-maintainer-grid { grid-template-columns: 1fr; }
+  .ops-device-maintainer-form { grid-template-columns: 1fr 1fr; margin-left: 0; }
 }
 @media (max-width: 640px) {
   .ops-shell { display: block; }
   .ops-sidebar { position: relative; min-height: 0; padding: 11px 15px 0; border-right: 0; border-bottom: 1px solid var(--ops-line); }
   .ops-brand { margin: 0 0 11px; }
-  .ops-brand .brewbot-mark { width: 26px; height: 26px; }
-  .ops-brand .brewbot-word { font-size: 17px; }
+  .ops-brand .brewbot-logo { width: 96px; }
   .ops-workspace { display: none; }
   .ops-nav { flex-direction: row; gap: 4px; overflow-x: auto; margin: 0 -1px; padding: 0 0 8px; scrollbar-width: none; }
   .ops-nav::-webkit-scrollbar { display: none; }
@@ -893,6 +920,8 @@ a { color: inherit; text-decoration: none; }
   .ops-topbar { min-height: 45px; padding: 0 15px; }
   .ops-content { padding: 18px 14px 24px; }
   .ops-page-heading { align-items: flex-start; gap: 8px; margin-bottom: 13px; }
+  .ops-heading-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .ops-device-selector select { max-width: 46vw; }
   .ops-page-heading h1 { font-size: 21px; }
   .ops-page-heading > div > p:last-child { max-width: 240px; font-size: 10px; line-height: 1.45; }
   .ops-storefront-link { gap: 4px; padding: 7px; font-size: 8px; }
@@ -914,6 +943,11 @@ a { color: inherit; text-decoration: none; }
   .ops-product-edit { grid-template-columns: minmax(0, 1fr) 94px; }
   .ops-ad-layout { grid-template-columns: 1fr; gap: 14px; }
   .ops-maintainer-grid { grid-template-columns: 1fr; }
+  .ops-device-entry-heading { flex-wrap: wrap; }
+  .ops-device-entry-heading > div { flex-basis: calc(100% - 55px); }
+  .ops-device-entry-heading code { margin-left: 42px; }
+  .ops-device-maintainer-form { grid-template-columns: 1fr; }
+  .ops-device-form-feedback { grid-column: 1; }
   .ops-member-row { gap: 7px; }
   .ops-cancel-button { min-height: 28px; padding: 0 6px; font-size: 8px; }
   .ops-preview-pill { padding: 5px 7px; font-size: 8px; }
@@ -932,6 +966,9 @@ a { color: inherit; text-decoration: none; }
   .ops-edit-actions { grid-column: auto; }
 }
 .kiosk-ad-slot.has-campaign { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 7px 10px; border: 1px solid #dce5dc; background: #f8faf7; color: #26372b; box-shadow: 0 2px 8px #18291814; }
+.kiosk-ad-link { display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; min-width: 0; color: inherit; text-decoration: none; }
+.kiosk-ad-link:hover .kiosk-ad-copy > strong { text-decoration: underline; }
+.kiosk-ad-link:focus-visible { border-radius: 6px; outline: 2px solid #315942; outline-offset: -3px; }
 .kiosk-ad-artwork { position: relative; flex: 0 0 72px; width: 72px; height: 100%; overflow: hidden; border-radius: 6px; background: #e8eee8; }
 .kiosk-ad-slot .kiosk-ad-artwork img { object-fit: cover; object-position: center; filter: none; }
 .kiosk-ad-slot.has-campaign .kiosk-ad-copy { position: relative; top: auto; right: auto; z-index: 1; min-width: 0; flex: 1; overflow: hidden; transform: none; color: #26372b; text-align: left; }
@@ -947,16 +984,13 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 420px) {
   .kiosk-screen { min-height: 100svh; padding: 8px 10px; }
   .kiosk-location { margin-bottom: 8px; padding: 10px 12px; }
-  .kiosk-location-header { align-items: center; justify-content: space-between; gap: 6px; }
+  .kiosk-location-header { align-items: flex-start; justify-content: space-between; gap: 6px; }
   .kiosk-location-details { min-width: 0; flex: 1; }
   .kiosk-location-title { gap: 6px; }
   .kiosk-location-title h1 { font-size: 13px; letter-spacing: -.2px; }
   .kiosk-building-icon { width: 20px; height: 22px; }
   .kiosk-hall { margin: 7px 0 3px; }
   .kiosk-brand-stack { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 4px; }
-  .kiosk-brand { gap: 5px; }
-  .kiosk-brand .brewbot-mark { width: 31px; height: 31px; }
-  .kiosk-brand .brewbot-word { font-size: 16px; letter-spacing: -.4px; }
   .kiosk-wallet-fab { position: static; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #ffffff70; border-radius: 50%; background: #252930; color: #fff; box-shadow: none; }
   .kiosk-wallet-fab svg { width: 15px; height: 15px; }
   .kiosk-products { display: flex; flex-direction: column; gap: 8px; }
@@ -982,7 +1016,6 @@ a { color: inherit; text-decoration: none; }
   .kiosk-ad-slot.has-campaign .kiosk-ad-copy > strong { font-size: 10px; }
   .kiosk-ad-slot.has-campaign .kiosk-ad-copy > p { font-size: 7px; }
 }
-
 body:has(.checkout-compact-page) { background: #0b0b0b; }
 .checkout-compact-page { max-width: 460px; min-height: 100svh; margin: 0 auto; padding-bottom: 236px; border-radius: 18px 18px 0 0; background: #f5f5f5; color: #111; }
 .checkout-compact-header { height: 54px; padding: 0 12px; border-radius: 18px 18px 0 0; }
@@ -1017,6 +1050,15 @@ body:has(.checkout-compact-page) { background: #0b0b0b; }
   .checkout-payment-button-wrap .checkout-pay-button:disabled { opacity: .62; cursor: wait; }
   .checkout-payment-button-wrap .checkout-message { margin: 0; padding: 8px 10px; color: #881337; font-size: 12px; line-height: 1.4; }
   .checkout-rfid-contact a { color: #111; }
+.wallet-payment-action .wallet-payment-button { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 11px; width: 100%; min-height: 58px; padding: 8px 13px; border: 1px solid #d5e0d6; border-radius: 13px; background: #edf3ed; color: #244a32; text-align: left; transition: background .15s, border-color .15s, transform .15s; }
+.wallet-payment-action .wallet-payment-button:hover:not(:disabled) { transform: translateY(-1px); border-color: #9eb49f; background: #e4eee5; }
+.wallet-payment-action .wallet-payment-button:focus-visible { outline: 3px solid #8eaa91; outline-offset: 2px; }
+.wallet-payment-action .wallet-payment-button:disabled { cursor: wait; opacity: .7; }
+.wallet-payment-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #dce9dd; color: #2e5b3b; }
+.wallet-payment-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.wallet-payment-copy strong { font-size: 14px; font-weight: 700; line-height: 1.1; }
+.wallet-payment-copy small { color: #66796a; font-size: 11px; line-height: 1.2; }
+.wallet-payment-price { display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 14px; font-weight: 750; }
 .checkout-result-page { display: flex; justify-content: center; min-height: 100svh; padding: 24px 14px; background: #f5f5f5; color: #111; }
 .checkout-result-card { width: 100%; max-width: 420px; align-self: flex-start; margin-top: clamp(28px, 10vh, 76px); padding: 22px; border: 1px solid #e2e2e2; border-radius: 18px; background: #fff; box-shadow: 0 8px 28px #0000000b; }
 .checkout-result-eyebrow { margin: 0 0 9px; color: #555; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }

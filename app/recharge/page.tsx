@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
-import { RechargeFlow } from "@/components/recharge-flow"
+import { redirect } from "next/navigation"
 import { DEFAULT_DEVICE_ID } from "@/lib/device-routes"
 
 export const metadata: Metadata = {
-  title: "RFID Wallet Recharge | BrewBot",
-  description: "Register an RFID card or securely top up your BrewBot wallet through EPS."
+  title: "BrewBot Account & Wallet",
+  description: "Sign in to your universal BrewBot wallet or add balance through EPS."
 }
 
 type RechargePageProps = { searchParams: Promise<{ deviceId?: string; resultToken?: string }> }
@@ -12,8 +12,7 @@ type RechargePageProps = { searchParams: Promise<{ deviceId?: string; resultToke
 export default async function RechargePage({ searchParams }: RechargePageProps) {
   const params = await searchParams
   const deviceId = params.deviceId && /^[A-Z0-9_-]{1,64}$/.test(params.deviceId) ? params.deviceId : DEFAULT_DEVICE_ID
-  const resultToken = params.resultToken && /^[0-9a-f-]{36}$/i.test(params.resultToken) ? params.resultToken : undefined
-  const backHref = `/${encodeURIComponent(deviceId)}`
-
-  return <RechargeFlow backHref={backHref} deviceId={deviceId} resultToken={resultToken} />
+  const query = new URLSearchParams({ deviceId })
+  if (params.resultToken && /^[0-9a-f-]{36}$/i.test(params.resultToken)) query.set("resultToken", params.resultToken)
+  redirect(`/account?${query}`)
 }

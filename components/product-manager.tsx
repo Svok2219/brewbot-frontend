@@ -36,9 +36,10 @@ async function fetchProducts(url: string): Promise<ProductResponse> {
   return response.json() as Promise<ProductResponse>
 }
 
-export function ProductManager({ initialProducts }: { initialProducts: Product[] }) {
-  const { data, error, isLoading, mutate } = useSWR<ProductResponse>("/api/admin/products", fetchProducts, {
-    fallbackData: { products: initialProducts },
+export function ProductManager({ deviceId }: { deviceId: string }) {
+  const productsUrl = `/api/admin/products?deviceId=${encodeURIComponent(deviceId)}`
+  const productUrl = (productId: string) => `/api/admin/products/${encodeURIComponent(productId)}?deviceId=${encodeURIComponent(deviceId)}`
+  const { data, error, isLoading, mutate } = useSWR<ProductResponse>(productsUrl, fetchProducts, {
     refreshInterval: 10000,
     revalidateOnFocus: true,
   })
@@ -73,10 +74,10 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
 
     const payload = { ...draft, pricePaisa: Math.round(Number(price) * 100) }
     try {
-      const response = await fetch(editingId ? `/api/admin/products/${encodeURIComponent(editingId)}` : "/api/admin/products", {
+      const response = await fetch(editingId ? productUrl(editingId) : "/api/admin/products", {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, deviceId }),
       })
       const result = await response.json() as { error?: string }
       if (!response.ok) throw new Error(result.error ?? "Product could not be saved.")
@@ -96,10 +97,11 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
     setBusy(true)
     setFeedback("")
     try {
-      const response = await fetch(`/api/admin/products/${encodeURIComponent(product.id)}`, {
+      const response = await fetch(productUrl(product.id), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          deviceId,
           name: product.name,
           description: product.description,
           image: product.image,
@@ -124,7 +126,7 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
     setBusy(true)
     setFeedback("")
     try {
-      const response = await fetch(`/api/admin/products/${encodeURIComponent(product.id)}`, { method: "DELETE" })
+      const response = await fetch(productUrl(product.id), { method: "DELETE" })
       const result = await response.json() as { error?: string }
       if (!response.ok) throw new Error(result.error ?? "Product could not be archived.")
       setArchiveId(null)
@@ -143,7 +145,7 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
         <div>
           <p className="ops-eyebrow">LIVE MENU</p>
           <h2 id="products-heading">Products</h2>
-          <p>Stock is capped at {BEVERAGE_STOCK_LIMIT} cups. Refill after restocking; changes appear on the storefront within seconds.</p>
+          <p>This device’s catalog. Stock is capped at {BEVERAGE_STOCK_LIMIT} cups; changes do not affect other devices.</p>
         </div>
         {!draft && <button className="ops-button-primary" type="button" onClick={() => editProduct()}><Plus aria-hidden="true" /> Add product</button>}
       </div>

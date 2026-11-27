@@ -18,6 +18,7 @@ export default async function CheckoutResultPage({
     status: "pending" | "paid" | "failed" | "cancelled"
     productName: string
     amountPaisa: number
+    paymentMethod: "eps" | "wallet"
     deviceId: string | null
     universityName: string | null
     locationName: string | null
@@ -35,6 +36,7 @@ export default async function CheckoutResultPage({
         status: paymentAttempts.status,
         productName: paymentAttempts.productName,
         amountPaisa: paymentAttempts.amountPaisa,
+        paymentMethod: paymentAttempts.paymentMethod,
         deviceId: paymentAttempts.deviceId,
         universityName: devices.universityName,
         locationName: devices.locationName,
@@ -103,6 +105,7 @@ export default async function CheckoutResultPage({
             <div><dt>Device</dt><dd>{attempt.deviceId ?? "Not specified"}</dd></div>
             {deviceLocation && <div><dt>Location</dt><dd>{deviceLocation}</dd></div>}
             {paidAtLabel && <div><dt>Paid at</dt><dd>{paidAtLabel}</dd></div>}
+            <div><dt>Payment method</dt><dd>{attempt.paymentMethod === "wallet" ? "BrewBot wallet" : "EPS"}</dd></div>
             <div><dt>Payment reference</dt><dd>{attempt.epsTransactionId ?? attempt.customerOrderId}</dd></div>
           </dl>
         )}

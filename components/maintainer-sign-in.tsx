@@ -14,15 +14,17 @@ export function MaintainerSignIn() {
     setMessage("")
 
     try {
-      const passcode = String(new FormData(event.currentTarget).get("passcode") ?? "")
+      const form = new FormData(event.currentTarget)
+      const email = String(form.get("email") ?? "").trim().toLowerCase()
+      const password = String(form.get("password") ?? "")
       const response = await fetch("/api/maintainer/sign-in", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ passcode }),
+        body: JSON.stringify({ email, password }),
       })
       if (!response.ok) {
         const payload = await response.json().catch(() => ({})) as { error?: string }
-        setMessage(payload.error || "The maintainer passcode is incorrect.")
+        setMessage(payload.error || "Email or password is incorrect.")
         return
       }
       window.location.assign("/admin/maintainer")
@@ -39,13 +41,15 @@ export function MaintainerSignIn() {
         <BrewBotLogo className="admin-auth-logo" />
         <p className="ops-eyebrow">DEVICE MAINTAINER</p>
         <h1 id="maintainer-signin-title">Sign in to manage RFID access</h1>
-        <p className="admin-auth-description">Use your separate maintainer passcode. Owner account credentials are not accepted here.</p>
+        <p className="admin-auth-description">Use the email and password assigned to your device by the owner.</p>
         {message && <p className="admin-auth-message" role="alert">{message}</p>}
         <form className="admin-auth-form" onSubmit={submit}>
-          <label htmlFor="maintainer-passcode">Maintainer passcode</label>
-          <input id="maintainer-passcode" name="passcode" type="password" autoComplete="current-password" minLength={12} maxLength={1024} required />
+          <label htmlFor="maintainer-email">Email</label>
+          <input id="maintainer-email" name="email" type="email" autoComplete="username" required />
+          <label htmlFor="maintainer-password">Password</label>
+          <input id="maintainer-password" name="password" type="password" autoComplete="current-password" maxLength={1024} required />
           <button className="ops-button-primary" type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in as maintainer"}
+            {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </section>

@@ -34,18 +34,34 @@ type DeviceStorefrontProps = {
 
 export function DeviceStorefront({ deviceId, universityName, locationName, initialProducts, initialCampaign }: DeviceStorefrontProps) {
   const router = useRouter()
-  const { data, error } = useSWR<ProductResponse>("/api/products", fetchProducts, {
+  const productsUrl = `/api/products?deviceId=${encodeURIComponent(deviceId)}`
+  const campaignUrl = `/api/campaign?deviceId=${encodeURIComponent(deviceId)}`
+  const { data, error } = useSWR<ProductResponse>(productsUrl, fetchProducts, {
     fallbackData: { products: initialProducts },
     refreshInterval: 5000,
     revalidateOnFocus: true,
   })
-  const { data: campaignData } = useSWR<CampaignResponse>("/api/campaign", fetchCampaign, {
+  const { data: campaignData } = useSWR<CampaignResponse>(campaignUrl, fetchCampaign, {
     fallbackData: { campaign: initialCampaign },
     refreshInterval: 5000,
     revalidateOnFocus: true,
   })
   const products = data?.products ?? []
   const campaign = campaignData?.campaign ?? null
+  const campaignContent = campaign ? (
+    <>
+      {campaign.artworkUrl && (
+        <div className="kiosk-ad-artwork">
+          <Image src={campaign.artworkUrl} alt={`${campaign.headline} campaign artwork`} fill sizes="96px" unoptimized />
+        </div>
+      )}
+      <div className="kiosk-ad-copy">
+        <span>FEATURED CAMPAIGN</span>
+        <strong>{campaign.headline}</strong>
+        {campaign.supportingText && <p>{campaign.supportingText}</p>}
+      </div>
+    </>
+  ) : null
   const latestStockUpdate = products.reduce(
     (latest, product) => Math.max(latest, Date.parse(product.updatedAt)),
     0,
@@ -71,7 +87,7 @@ export function DeviceStorefront({ deviceId, universityName, locationName, initi
           </div>
           <div className="kiosk-brand-stack">
             <BrewBotLogo className="kiosk-brand" />
-            <Link className="kiosk-wallet-fab" href={`/recharge?deviceId=${encodeURIComponent(deviceId)}`} aria-label="Open RFID wallet">
+            <Link className="kiosk-wallet-fab" href={`/account?deviceId=${encodeURIComponent(deviceId)}`} aria-label="Open BrewBot account and wallet">
               <UserRound aria-hidden="true" />
             </Link>
           </div>
@@ -97,20 +113,17 @@ export function DeviceStorefront({ deviceId, universityName, locationName, initi
       </section>
 
       <aside className={`kiosk-ad-slot${campaign ? " has-campaign" : ""}`} aria-label={campaign ? `Advertisement: ${campaign.headline}` : "Advertisement"}>
-        {campaign ? (
-          <>
-            {campaign.artworkUrl && (
-              <div className="kiosk-ad-artwork">
-                <Image src={campaign.artworkUrl} alt={`${campaign.headline} campaign artwork`} fill sizes="96px" unoptimized />
-              </div>
-            )}
-            <div className="kiosk-ad-copy">
-              <span>FEATURED CAMPAIGN</span>
-              <strong>{campaign.headline}</strong>
-              {campaign.supportingText && <p>{campaign.supportingText}</p>}
-            </div>
-          </>
-        ) : (
+        {campaign ? campaign.targetUrl ? (
+          <a
+            className="kiosk-ad-link"
+            href={campaign.targetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${campaign.headline} advertiser page in a new tab`}
+          >
+            {campaignContent}
+          </a>
+        ) : campaignContent : (
           <div className="kiosk-ad-copy">
             <span>LIVE CAMPAIGNS</span>
             <strong>No active campaign</strong>

@@ -59,13 +59,17 @@ export async function GET(request: NextRequest) {
             eq(paymentAttempts.merchantTransactionId, merchantTransactionId),
             ne(paymentAttempts.status, "paid"),
           ))
-          .returning({ productId: paymentAttempts.productId })
+          .returning({ productId: paymentAttempts.productId, deviceId: paymentAttempts.deviceId })
 
         if (!settledAttempt) return
 
         await tx.update(products)
           .set({ stock: sql`GREATEST(${products.stock} - 1, 0)` })
-          .where(and(eq(products.id, settledAttempt.productId), gt(products.stock, 0)))
+          .where(and(
+            eq(products.id, settledAttempt.productId),
+            ...(settledAttempt.deviceId ? [eq(products.deviceId, settledAttempt.deviceId)] : []),
+            gt(products.stock, 0),
+          ))
       })
     } else {
       await db.update(paymentAttempts)

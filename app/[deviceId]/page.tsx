@@ -16,7 +16,10 @@ export default async function DevicePage({ params }: DevicePageProps) {
 
   if (!device) notFound()
 
-  const [products, campaign] = await Promise.all([getActiveProducts(), getActiveCampaign()])
+  const [products, campaign] = await Promise.all([
+    getActiveProducts(device.deviceId),
+    getActiveCampaign(device.deviceId),
+  ])
 
   return (
     <DeviceStorefront

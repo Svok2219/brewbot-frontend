@@ -7,6 +7,7 @@ import useSWR from "swr"
 import {
   ArrowRight,
   ClipboardList,
+  Cpu,
   LayoutDashboard,
   Megaphone,
   Package,
@@ -15,11 +16,11 @@ import {
 import { AdminSignOut } from "@/components/admin-sign-out"
 import { BrewBotLogo } from "@/components/brewbot-logo"
 import { ProductManager } from "@/components/product-manager"
+import { DeviceManager } from "@/components/device-manager"
 import { DEFAULT_DEVICE_ID, DEFAULT_DEVICE_PATH } from "@/lib/device-routes"
 import type { BrewbotCampaign } from "@/lib/campaigns"
-import type { BrewbotProduct } from "@/lib/products"
 
-type OwnerSection = "Overview" | "Orders" | "Products" | "Advertisements"
+type OwnerSection = "Overview" | "Orders" | "Products" | "Advertisements" | "Devices"
 type Order = { id: string; time: string; item: string; payment: string; total: string; status: string }
 type AdminOrder = {
   id: string
@@ -32,24 +33,38 @@ type AdminOrder = {
   locationName: string | null
 }
 type ActiveDevice = { deviceId: string; universityName: string; locationName: string }
+type ManageableDevice = ActiveDevice & {
+  isActive: boolean
+  maintainerName: string | null
+  maintainerContact: string | null
+  maintainerEmail: string | null
+}
 type AdminDashboardResponse = {
   devices: ActiveDevice[]
   orders: AdminOrder[]
   ordersToday: number
   paidTotalPaisa: number
 }
+type AdminDevicesResponse = { devices: ManageableDevice[] }
 
 const navigation: { label: OwnerSection; icon: typeof LayoutDashboard }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Orders", icon: ClipboardList },
   { label: "Products", icon: Package },
   { label: "Advertisements", icon: Megaphone },
+  { label: "Devices", icon: Cpu },
 ]
 
 async function fetchAdminDashboard(url: string): Promise<AdminDashboardResponse> {
   const response = await fetch(url, { cache: "no-store" })
   if (!response.ok) throw new Error("Live admin data could not be loaded.")
   return response.json() as Promise<AdminDashboardResponse>
+}
+
+async function fetchAdminDevices(url: string): Promise<AdminDevicesResponse> {
+  const response = await fetch(url, { cache: "no-store" })
+  if (!response.ok) throw new Error("Devices could not be loaded.")
+  return response.json() as Promise<AdminDevicesResponse>
 }
 
 function toOrderRow(order: AdminOrder): Order {
@@ -63,13 +78,32 @@ function toOrderRow(order: AdminOrder): Order {
   }
 }
 
-export function OwnerAdmin({ initialProducts, initialCampaign }: { initialProducts: BrewbotProduct[]; initialCampaign: BrewbotCampaign | null }) {
+export function OwnerAdmin({ initialDevices }: { initialDevices: ActiveDevice[] }) {
   const [section, setSection] = useState<OwnerSection>("Overview")
   const [feedback, setFeedback] = useState("")
+  const [selectedDeviceId, setSelectedDeviceId] = useState(
+    initialDevices.find((device) => device.deviceId === DEFAULT_DEVICE_ID)?.deviceId ?? initialDevices[0]?.deviceId ?? "",
+  )
   const { data: dashboard, error: dashboardError } = useSWR<AdminDashboardResponse>("/api/admin/dashboard", fetchAdminDashboard, {
     refreshInterval: 10000,
     revalidateOnFocus: true,
   })
+  const { data: devicesData, error: devicesError } = useSWR<AdminDevicesResponse>("/api/admin/devices", fetchAdminDevices, {
+    fallbackData: {
+      devices: initialDevices.map((device) => ({
+        ...device,
+        isActive: true,
+        maintainerName: null,
+        maintainerContact: null,
+        maintainerEmail: null,
+      })),
+    },
+    revalidateOnFocus: true,
+  })
+  const activeDevices = devicesData?.devices.filter((device) => device.isActive) ?? []
+  const selectedDevice = activeDevices.find((device) => device.deviceId === selectedDeviceId) ?? activeDevices[0]
+  const resolvedDeviceId = selectedDevice?.deviceId ?? ""
+  const hasDeviceScopedSection = section === "Products" || section === "Advertisements"
 
   return (
     <main className="ops-shell">
@@ -119,25 +153,48 @@ export function OwnerAdmin({ initialProducts, initialCampaign }: { initialProduc
               <h1>{section === "Overview" ? "Owner overview" : section}</h1>
               <p>Manage kiosk activity and the content customers see.</p>
             </div>
-            <Link className="ops-storefront-link" href={DEFAULT_DEVICE_PATH}>View storefront <ArrowRight aria-hidden="true" /></Link>
+            <div className="ops-heading-actions">
+              {hasDeviceScopedSection && (
+                <label className="ops-device-selector">
+                  <span>Device</span>
+                  <select value={resolvedDeviceId} onChange={(event) => setSelectedDeviceId(event.target.value)} disabled={activeDevices.length === 0}>
+                    {activeDevices.length === 0 && <option value="">No active devices</option>}
+                    {activeDevices.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>{device.locationName} · {device.universityName}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {selectedDevice && (
+                <Link className="ops-storefront-link" href={`/${encodeURIComponent(selectedDevice.deviceId)}`}>
+                  View storefront <ArrowRight aria-hidden="true" />
+                </Link>
+              )}
+            </div>
           </div>
 
           <div className="ops-preview-note" role="note">
             <span className="ops-note-dot" aria-hidden="true" />
             {section === "Products"
-              ? "The product catalog is connected to Neon. Saved changes appear on storefronts within seconds."
+              ? "This device’s catalog is stored independently. Saved changes affect only this storefront."
               : section === "Advertisements"
-                ? "Campaigns save to Neon and appear on every storefront within seconds."
-                : "Order and device summaries are not yet connected to live operational data."}
+                ? "This campaign is published only on the selected device. Other storefronts are unchanged."
+                : section === "Devices"
+                  ? "Register kiosks and assign device-scoped maintainer logins."
+                  : "Order and device summaries are not yet connected to live operational data."}
           </div>
           {feedback && <p className="ops-feedback" role="status">{feedback}</p>}
+          {devicesError && <p className="ops-error" role="alert">{devicesError.message}</p>}
 
           {section === "Overview" && <Overview dashboard={dashboard} error={dashboardError?.message} onOpenOrders={() => setSection("Orders")} />}
           {section === "Orders" && <OrderRecords dashboard={dashboard} error={dashboardError?.message} />}
-          {section === "Products" && <ProductManager initialProducts={initialProducts} />}
-          {section === "Advertisements" && (
-            <AdvertisementEditor initialCampaign={initialCampaign} onFeedback={setFeedback} />
-          )}
+          {section === "Products" && (selectedDevice
+            ? <ProductManager key={resolvedDeviceId} deviceId={resolvedDeviceId} />
+            : <p className="ops-empty">Add an active device before managing products.</p>)}
+          {section === "Devices" && <DeviceManager />}
+          {section === "Advertisements" && (selectedDevice
+            ? <AdvertisementEditor key={resolvedDeviceId} deviceId={resolvedDeviceId} onFeedback={setFeedback} />
+            : <p className="ops-empty">Add an active device before managing advertisements.</p>)}
         </div>
       </section>
     </main>
@@ -245,21 +302,22 @@ function readImagePreview(file: File, onRead: (image: string) => void, onError: 
 }
 
 function AdvertisementEditor({
-  initialCampaign,
+  deviceId,
   onFeedback,
 }: {
-  initialCampaign: BrewbotCampaign | null
+  deviceId: string
   onFeedback: (message: string) => void
 }) {
-  const { data, error, isLoading, mutate } = useSWR<CampaignResponse>("/api/admin/campaign", fetchCampaign, {
-    fallbackData: { campaign: initialCampaign },
+  const campaignUrl = `/api/admin/campaign?deviceId=${encodeURIComponent(deviceId)}`
+  const { data, error, isLoading, mutate } = useSWR<CampaignResponse>(campaignUrl, fetchCampaign, {
     refreshInterval: 10000,
     revalidateOnFocus: true,
   })
-  const [headline, setHeadline] = useState(initialCampaign?.headline ?? "")
-  const [campaignCopy, setCampaignCopy] = useState(initialCampaign?.supportingText ?? "")
-  const [artworkUrl, setArtworkUrl] = useState(initialCampaign?.artworkUrl ?? "")
-  const [campaignImage, setCampaignImage] = useState(initialCampaign?.artworkUrl ?? "")
+  const [headline, setHeadline] = useState("")
+  const [campaignCopy, setCampaignCopy] = useState("")
+  const [targetUrl, setTargetUrl] = useState("")
+  const [artworkUrl, setArtworkUrl] = useState("")
+  const [campaignImage, setCampaignImage] = useState("")
   const [pendingArtwork, setPendingArtwork] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
@@ -269,6 +327,7 @@ function AdvertisementEditor({
     const campaign = data?.campaign
     setHeadline(campaign?.headline ?? "")
     setCampaignCopy(campaign?.supportingText ?? "")
+    setTargetUrl(campaign?.targetUrl ?? "")
     setArtworkUrl(campaign?.artworkUrl ?? "")
     setCampaignImage(campaign?.artworkUrl ?? "")
     setPendingArtwork(null)
@@ -281,21 +340,24 @@ function AdvertisementEditor({
     onFeedback("")
 
     const formData = new FormData()
+    formData.set("deviceId", deviceId)
     formData.set("headline", headline)
     formData.set("supportingText", campaignCopy)
+    formData.set("targetUrl", targetUrl)
     formData.set("artworkUrl", artworkUrl)
     if (pendingArtwork) formData.set("artwork", pendingArtwork)
 
     try {
       const response = await fetch("/api/admin/campaign", { method: "PUT", body: formData })
-      const result = await response.json() as { campaign?: BrewbotCampaign; error?: string; warning?: string | null }
+      const result = await response.json() as { campaign?: BrewbotCampaign; error?: string }
       if (!response.ok || !result.campaign) throw new Error(result.error ?? "Campaign could not be saved.")
+      setTargetUrl(result.campaign.targetUrl ?? "")
       setArtworkUrl(result.campaign.artworkUrl ?? "")
       setCampaignImage(result.campaign.artworkUrl ?? "")
       setPendingArtwork(null)
       await mutate({ campaign: result.campaign }, false)
       setIsDirty(false)
-      onFeedback(result.warning ?? "Campaign saved. Storefronts refresh the live content within seconds.")
+      onFeedback("Campaign saved. Storefronts refresh the live content within seconds.")
     } catch (saveError) {
       onFeedback(saveError instanceof Error ? saveError.message : "Campaign could not be saved.")
     } finally {
@@ -320,10 +382,34 @@ function AdvertisementEditor({
     onFeedback("")
   }
 
+  async function removeCampaign() {
+    if (busy) return
+    setBusy(true)
+    onFeedback("")
+    try {
+      const response = await fetch(`${campaignUrl}`, { method: "DELETE" })
+      const result = await response.json() as { error?: string }
+      if (!response.ok) throw new Error(result.error ?? "Campaign could not be removed.")
+      setHeadline("")
+      setCampaignCopy("")
+      setTargetUrl("")
+      setArtworkUrl("")
+      setCampaignImage("")
+      setPendingArtwork(null)
+      setIsDirty(false)
+      await mutate({ campaign: null }, false)
+      onFeedback("Campaign removed from this device. Other devices are unchanged.")
+    } catch (removeError) {
+      onFeedback(removeError instanceof Error ? removeError.message : "Campaign could not be removed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="ops-card ops-ad-editor" aria-labelledby="advertisement-heading">
       <div className="ops-card-heading">
-        <div><p className="ops-eyebrow">CUSTOMER-FACING CONTENT</p><h2 id="advertisement-heading">Advertisement</h2><p>Edit the campaign message shown beside the menu and save it to publish across kiosks.</p></div>
+        <div><p className="ops-eyebrow">CUSTOMER-FACING CONTENT</p><h2 id="advertisement-heading">Advertisement</h2><p>Edit the campaign shown on this device. New devices start without a campaign.</p></div>
       </div>
       {error && <p className="ops-error" role="alert">{error.message}</p>}
       {isLoading && <p className="ops-empty">Loading the live campaign…</p>}
@@ -333,11 +419,15 @@ function AdvertisementEditor({
           <input id="campaign-headline" value={headline} maxLength={100} onChange={(event) => { setHeadline(event.target.value); setIsDirty(true) }} required />
           <label htmlFor="campaign-copy">Supporting text</label>
           <textarea id="campaign-copy" rows={4} maxLength={400} value={campaignCopy} onChange={(event) => { setCampaignCopy(event.target.value); setIsDirty(true) }} />
+          <label htmlFor="campaign-target-url">Advertiser page URL (optional)</label>
+          <input id="campaign-target-url" type="url" maxLength={2048} value={targetUrl} onChange={(event) => { setTargetUrl(event.target.value); setIsDirty(true) }} placeholder="https://example.com" autoComplete="url" />
+          <small className="ops-file-help">Clicking this campaign on the storefront opens the advertiser page in a new tab.</small>
           <label htmlFor="campaign-artwork">Campaign artwork</label>
           <input id="campaign-artwork" type="file" accept="image/avif,image/gif,image/jpeg,image/png,image/webp" onChange={(event) => selectArtwork(event.target.files?.[0])} />
           <small className="ops-file-help">Artwork is served on kiosk storefronts. Maximum size: 4 MB.</small>
           {campaignImage && <button className="ops-button-quiet" type="button" onClick={removeArtwork}>Remove artwork</button>}
           <button className="ops-button-primary" type="submit" disabled={busy}><Megaphone aria-hidden="true" /> {busy ? "Saving…" : "Save campaign"}</button>
+          {data?.campaign && <button className="ops-button-quiet" type="button" onClick={removeCampaign} disabled={busy}>Remove campaign from this device</button>}
         </form>
         <div className="ops-ad-preview">
           <span className="ops-eyebrow">CUSTOMER VIEW</span>

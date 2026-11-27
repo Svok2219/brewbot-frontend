@@ -28,28 +28,35 @@ function toBrewbotProduct(product: typeof products.$inferSelect): BrewbotProduct
   }
 }
 
-export async function getActiveProducts() {
+export async function getActiveProducts(deviceId: string) {
   const rows = await db
     .select()
     .from(products)
-    .where(eq(products.isActive, true))
+    .where(and(eq(products.deviceId, deviceId), eq(products.isActive, true)))
     .orderBy(asc(products.sortOrder), asc(products.name))
 
   return rows.map(toBrewbotProduct)
 }
 
-export async function getAllProducts() {
-  const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.name))
+export async function getAllProducts(deviceId: string) {
+  const rows = await db.select().from(products)
+    .where(eq(products.deviceId, deviceId))
+    .orderBy(asc(products.sortOrder), asc(products.name))
   return rows.map(toBrewbotProduct)
 }
 
-export async function getBrewbotProduct(id: unknown) {
+export async function getBrewbotProduct(id: unknown, deviceId: string) {
   if (typeof id !== "string" || !id) return null
 
   const [product] = await db
     .select()
     .from(products)
-    .where(and(eq(products.id, id), eq(products.isActive, true), gt(products.stock, 0)))
+    .where(and(
+      eq(products.id, id),
+      eq(products.deviceId, deviceId),
+      eq(products.isActive, true),
+      gt(products.stock, 0),
+    ))
     .limit(1)
 
   return product ? toBrewbotProduct(product) : null

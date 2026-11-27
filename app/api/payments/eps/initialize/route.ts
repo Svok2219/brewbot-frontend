@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { paymentAttempts } from "@/lib/db/schema"
 import { getBrewbotProduct } from "@/lib/products"
+import { getActiveDevice } from "@/lib/device-registry"
 import { EPSConfigurationError, initializeEPSPayment } from "@/lib/payments/eps"
+import { getPublicRequestOrigin } from "@/lib/request-origin"
 
 export const runtime = "nodejs"
 
@@ -14,31 +16,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function createMerchantTransactionId() {
   return `${Date.now()}${randomInt(0, 1_000_000_000).toString().padStart(9, "0")}`
-}
-
-function getPublicRequestOrigin(request: NextRequest) {
-  const browserOrigin = request.headers.get("origin")
-  if (request.headers.get("sec-fetch-site") === "same-origin" && browserOrigin) {
-    try {
-      const parsedOrigin = new URL(browserOrigin)
-      if (parsedOrigin.protocol === "https:" || parsedOrigin.protocol === "http:") {
-        return parsedOrigin.origin
-      }
-    } catch {
-      // Fall back to the proxy-provided host when the browser origin is opaque.
-    }
-  }
-
-  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
-  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim()
-  const host = forwardedHost || request.headers.get("host")
-  const protocol = forwardedProtocol || request.nextUrl.protocol.replace(":", "")
-
-  if (!host || (protocol !== "http" && protocol !== "https")) {
-    return request.nextUrl.origin
-  }
-
-  return new URL(`${protocol}://${host}`).origin
 }
 
 function hasValidCheckoutOrigin(request: NextRequest, publicOrigin: string) {
@@ -67,13 +44,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Please review the checkout details and try again." }, { status: 400 })
   }
 
-  const product = await getBrewbotProduct(body.productId)
-  const deviceId = body.deviceId === null || body.deviceId === "" ? null : body.deviceId
+  const deviceId = typeof body.deviceId === "string" && /^[A-Z0-9_-]{1,64}$/.test(body.deviceId)
+    ? body.deviceId
+    : null
+  if (!deviceId) {
+    return NextResponse.json({ error: "This checkout could not be started. Please return to the menu and try again." }, { status: 400 })
+  }
 
-  if (
-    !product ||
-    (deviceId !== null && (typeof deviceId !== "string" || !/^[A-Z0-9_-]{1,64}$/.test(deviceId)))
-  ) {
+  let product
+  try {
+    if (!(await getActiveDevice(deviceId))) {
+      return NextResponse.json({ error: "This checkout could not be started. Please return to the menu and try again." }, { status: 400 })
+    }
+    product = await getBrewbotProduct(body.productId, deviceId)
+  } catch {
+    return NextResponse.json({ error: "Checkout is temporarily unavailable. Please try again shortly." }, { status: 503 })
+  }
+  if (!product) {
     return NextResponse.json({ error: "This checkout could not be started. Please return to the menu and try again." }, { status: 400 })
   }
 
@@ -91,7 +78,7 @@ export async function POST(request: NextRequest) {
       resultToken,
       productId: product.id,
       productName: product.name,
-      deviceId: deviceId as string | null,
+      deviceId,
       amountPaisa: product.pricePaisa,
       status: "pending",
     })

@@ -5,10 +5,10 @@ import { useState, type FormEvent } from "react"
 import useSWR from "swr"
 import { ArrowLeft, ArrowRight, LogOut, Radio, ShieldCheck, Store, UserRoundPlus, X } from "lucide-react"
 import { BrewBotLogo } from "@/components/brewbot-logo"
-import { DEFAULT_DEVICE_ID, DEFAULT_DEVICE_PATH } from "@/lib/device-routes"
 
 type RfidMember = { id: string; userName: string; cardId: string; walletBalancePaisa: number }
 type UsersResponse = { users?: RfidMember[]; error?: string }
+type MaintainedDevice = { deviceId: string; universityName: string; locationName: string }
 
 const fetchUsers = async (url: string): Promise<UsersResponse> => {
   const response = await fetch(url, { cache: "no-store" })
@@ -18,9 +18,8 @@ const fetchUsers = async (url: string): Promise<UsersResponse> => {
 }
 const formatBalance = (paisa: number) => `৳${(paisa / 100).toLocaleString("en-BD", { minimumFractionDigits: 2 })}`
 
-export function MaintainerAdmin() {
-  const usersUrl = `/api/admin/rfid-users?deviceId=${encodeURIComponent(DEFAULT_DEVICE_ID)}`
-  const { data, error, isLoading, mutate } = useSWR(usersUrl, fetchUsers, { revalidateOnFocus: true })
+export function MaintainerAdmin({ device }: { device: MaintainedDevice }) {
+  const { data, error, isLoading, mutate } = useSWR("/api/admin/rfid-users", fetchUsers, { revalidateOnFocus: true })
   const members = data?.users ?? []
   const [userName, setUserName] = useState("")
   const [cardId, setCardId] = useState("")
@@ -49,7 +48,7 @@ export function MaintainerAdmin() {
       const response = await fetch("/api/admin/rfid-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deviceId: DEFAULT_DEVICE_ID, userName, cardId }),
+        body: JSON.stringify({ userName, cardId }),
       })
       const payload = await response.json() as { error?: string }
       if (!response.ok) throw new Error(payload.error || "RFID registration failed.")
@@ -68,12 +67,12 @@ export function MaintainerAdmin() {
     setFeedback("")
     setIsSaving(true)
     try {
-      const query = new URLSearchParams({ id: member.id, deviceId: DEFAULT_DEVICE_ID })
+      const query = new URLSearchParams({ id: member.id })
       const response = await fetch(`/api/admin/rfid-users?${query}`, { method: "DELETE" })
       const payload = await response.json() as { error?: string }
       if (!response.ok) throw new Error(payload.error || "RFID access could not be removed.")
       setPendingCancel(null)
-      setFeedback(`RFID access for ${member.userName} was deactivated. Its history and wallet balance remain preserved.`)
+      setFeedback(`${member.userName}'s card was unlinked from this device. Their account and wallet balance remain unchanged.`)
       await mutate()
     } catch (cause) {
       setFeedback(cause instanceof Error ? cause.message : "RFID access could not be removed.")
@@ -85,10 +84,10 @@ export function MaintainerAdmin() {
   return (
     <main className="ops-shell ops-maintainer-shell">
       <aside className="ops-sidebar">
-        <Link className="ops-brand" href={DEFAULT_DEVICE_PATH} aria-label="BrewBot storefront"><BrewBotLogo /></Link>
+        <Link className="ops-brand" href={`/${encodeURIComponent(device.deviceId)}`} aria-label="BrewBot storefront"><BrewBotLogo /></Link>
         <div className="ops-workspace">
           <span className="ops-workspace-mark"><Store aria-hidden="true" /></span>
-          <span><strong>Jagannath Hall</strong><small>Device workspace</small></span>
+          <span><strong>{device.locationName}</strong><small>Device workspace</small></span>
         </div>
         <div className="ops-maintainer-label"><ShieldCheck aria-hidden="true" /><span>DEVICE MAINTAINER</span></div>
         <div className="ops-sidebar-bottom">
@@ -110,7 +109,7 @@ export function MaintainerAdmin() {
         <div className="ops-content">
           <div className="ops-page-heading">
             <div>
-              <p className="ops-eyebrow">DEVICE {DEFAULT_DEVICE_ID}</p>
+              <p className="ops-eyebrow">DEVICE {device.deviceId}</p>
               <h1>Device maintainer</h1>
               <p>Check your assigned kiosk and manage RFID access.</p>
             </div>
@@ -119,27 +118,27 @@ export function MaintainerAdmin() {
 
           <div className="ops-preview-note" role="note">
             <span className="ops-note-dot" aria-hidden="true" />
-            RFID changes are saved to the active users table. Deactivated users keep their wallet history.
+            RFID cards link to universal BrewBot accounts. Removing a card from this device does not change the account or wallet.
           </div>
           {feedback && <p className="ops-feedback" role="status">{feedback}</p>}
           {error && <p className="ops-feedback" role="alert">{error.message}</p>}
 
           <section className="ops-card ops-maintainer-device" aria-labelledby="maintainer-device-heading">
             <div className="ops-card-heading">
-              <div><p className="ops-eyebrow">DEVICE SUMMARY</p><h2 id="maintainer-device-heading">Jagannath Hall kiosk</h2></div>
+              <div><p className="ops-eyebrow">DEVICE SUMMARY</p><h2 id="maintainer-device-heading">{device.locationName} kiosk</h2></div>
               <span className="ops-status">{isLoading ? "Loading users" : "Device active"}</span>
             </div>
             <div className="ops-device-details">
               <span className="ops-device-icon"><Radio aria-hidden="true" /></span>
-              <div><strong>University of Dhaka</strong><span>Main entrance · RFID access management</span></div>
-              <code>{DEFAULT_DEVICE_ID}</code>
+              <div><strong>{device.universityName}</strong><span>{device.locationName} · RFID access management</span></div>
+              <code>{device.deviceId}</code>
             </div>
           </section>
 
           <div className="ops-maintainer-grid">
             <section className="ops-card ops-rfid-form-card" aria-labelledby="rfid-register-heading">
               <div className="ops-card-heading">
-                <div><p className="ops-eyebrow">RFID ACCESS</p><h2 id="rfid-register-heading">Register a user</h2><p>Save a name and card directly to this device.</p></div>
+                <div><p className="ops-eyebrow">RFID ACCESS</p><h2 id="rfid-register-heading">Link a card</h2><p>Link a card to a universal wallet account for this device.</p></div>
                 <span className="ops-form-icon"><UserRoundPlus aria-hidden="true" /></span>
               </div>
               <form className="ops-rfid-form" onSubmit={registerMember}>
@@ -147,7 +146,7 @@ export function MaintainerAdmin() {
                 <input id="user-name" value={userName} onChange={(event) => setUserName(event.target.value)} placeholder="Enter the cardholder’s name" autoComplete="name" required />
                 <label htmlFor="rfid-card-id">RFID card number</label>
                 <input id="rfid-card-id" value={cardId} onChange={(event) => setCardId(event.target.value)} placeholder="Scan or enter card number" autoComplete="off" required />
-                <button className="ops-button-primary" type="submit" disabled={isSaving}><UserRoundPlus aria-hidden="true" /> {isSaving ? "Saving…" : "Register RFID user"}</button>
+                <button className="ops-button-primary" type="submit" disabled={isSaving}><UserRoundPlus aria-hidden="true" /> {isSaving ? "Saving…" : "Link RFID card"}</button>
               </form>
             </section>
 
@@ -174,7 +173,7 @@ export function MaintainerAdmin() {
               </div>
             </section>
           </div>
-          <p className="ops-page-footnote">Deactivating a card preserves its balance and history and makes the card eligible for reassignment.</p>
+          <p className="ops-page-footnote">Unlinking a card removes it only from this device. The universal account and its wallet balance are preserved.</p>
         </div>
       </section>
     </main>

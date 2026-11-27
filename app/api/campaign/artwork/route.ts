@@ -1,15 +1,22 @@
 import { get } from "@vercel/blob"
 import { NextRequest, NextResponse } from "next/server"
 import { getActiveCampaignPrivateArtworkPath } from "@/lib/campaigns"
+import { getActiveDevice } from "@/lib/device-registry"
 
 export const dynamic = "force-dynamic"
 
 const cacheControl = "public, max-age=0, must-revalidate"
 
 export async function GET(request: NextRequest) {
+  const deviceId = request.nextUrl.searchParams.get("deviceId")
+  if (!deviceId || !/^[A-Z0-9_-]{1,64}$/.test(deviceId)) {
+    return NextResponse.json({ error: "A valid device is required." }, { status: 400 })
+  }
+
   try {
     // Campaign artwork is intentionally public; only serve the active campaign's stored image.
-    const pathname = await getActiveCampaignPrivateArtworkPath()
+    if (!(await getActiveDevice(deviceId))) return new NextResponse(null, { status: 404 })
+    const pathname = await getActiveCampaignPrivateArtworkPath(deviceId)
     if (!pathname) return new NextResponse(null, { status: 404 })
 
     const result = await get(pathname, {

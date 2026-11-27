@@ -1,9 +1,9 @@
-import { asc } from "drizzle-orm"
+import { and, asc, eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { isSameOriginRequest } from "@/lib/request-origin"
 import { db } from "@/lib/db"
-import { products } from "@/lib/db/schema"
+import { devices, products } from "@/lib/db/schema"
 import { BEVERAGE_STOCK_LIMIT } from "@/lib/inventory"
 
 export const dynamic = "force-dynamic"
@@ -63,12 +63,27 @@ async function adminResponse() {
   }
 }
 
-export async function GET() {
+function validDeviceId(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Z0-9_-]{1,64}$/.test(value)
+}
+
+async function activeDeviceExists(deviceId: string) {
+  const [device] = await db.select({ deviceId: devices.deviceId }).from(devices)
+    .where(and(eq(devices.deviceId, deviceId), eq(devices.isActive, true))).limit(1)
+  return Boolean(device)
+}
+
+export async function GET(request: NextRequest) {
   const denied = await adminResponse()
   if (denied) return denied
+  const deviceId = request.nextUrl.searchParams.get("deviceId")
+  if (!validDeviceId(deviceId)) return NextResponse.json({ error: "Select a valid device." }, { status: 400 })
 
   try {
-    const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.name))
+    if (!(await activeDeviceExists(deviceId))) return NextResponse.json({ error: "Active device not found." }, { status: 404 })
+    const rows = await db.select().from(products)
+      .where(eq(products.deviceId, deviceId))
+      .orderBy(asc(products.sortOrder), asc(products.name))
     return NextResponse.json({ products: rows.map(serializeProduct) }, {
       headers: { "Cache-Control": "no-store" },
     })
@@ -82,14 +97,20 @@ export async function POST(request: NextRequest) {
   if (denied) return denied
   if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 })
 
-  const product = validateProduct(await request.json().catch(() => null))
+  const body: unknown = await request.json().catch(() => null)
+  const product = validateProduct(body)
+  const deviceId = typeof body === "object" && body !== null && !Array.isArray(body) && "deviceId" in body
+    ? body.deviceId
+    : null
   if (!product) return NextResponse.json({ error: "Check the product details and try again." }, { status: 400 })
+  if (!validDeviceId(deviceId)) return NextResponse.json({ error: "Select a valid device." }, { status: 400 })
 
   const slug = product.name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "product"
   const id = `${slug}-${crypto.randomUUID().slice(0, 8)}`
 
   try {
-    const [created] = await db.insert(products).values({ id, ...product }).returning()
+    if (!(await activeDeviceExists(deviceId))) return NextResponse.json({ error: "Active device not found." }, { status: 404 })
+    const [created] = await db.insert(products).values({ id, deviceId, ...product }).returning()
     return NextResponse.json({ product: serializeProduct(created) }, { status: 201 })
   } catch {
     return NextResponse.json({ error: "Product could not be created." }, { status: 409 })

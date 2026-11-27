@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { isSameOriginRequest } from "@/lib/request-origin"
 import { db } from "@/lib/db"
-import { products } from "@/lib/db/schema"
+import { devices, products } from "@/lib/db/schema"
 import { BEVERAGE_STOCK_LIMIT } from "@/lib/inventory"
 
 export const dynamic = "force-dynamic"
@@ -49,17 +49,35 @@ async function adminResponse() {
   }
 }
 
+function validDeviceId(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Z0-9_-]{1,64}$/.test(value)
+}
+
+async function activeDeviceExists(deviceId: string) {
+  const [device] = await db.select({ deviceId: devices.deviceId }).from(devices)
+    .where(and(eq(devices.deviceId, deviceId), eq(devices.isActive, true))).limit(1)
+  return Boolean(device)
+}
+
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const denied = await adminResponse()
   if (denied) return denied
   if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 })
 
   const { productId } = await params
-  const product = validateProduct(await request.json().catch(() => null))
+  const body: unknown = await request.json().catch(() => null)
+  const product = validateProduct(body)
+  const deviceId = typeof body === "object" && body !== null && !Array.isArray(body) && "deviceId" in body
+    ? body.deviceId
+    : null
   if (!product) return NextResponse.json({ error: "Check the product details and try again." }, { status: 400 })
+  if (!validDeviceId(deviceId)) return NextResponse.json({ error: "Select a valid device." }, { status: 400 })
 
   try {
-    const [updated] = await db.update(products).set(product).where(eq(products.id, productId)).returning()
+    if (!(await activeDeviceExists(deviceId))) return NextResponse.json({ error: "Active device not found." }, { status: 404 })
+    const [updated] = await db.update(products).set(product)
+      .where(and(eq(products.id, productId), eq(products.deviceId, deviceId)))
+      .returning()
     if (!updated) return NextResponse.json({ error: "Product not found." }, { status: 404 })
     return NextResponse.json({ product: { ...product, id: updated.id, image: updated.imageUrl } })
   } catch {
@@ -73,10 +91,13 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 })
 
   const { productId } = await params
+  const deviceId = request.nextUrl.searchParams.get("deviceId")
+  if (!validDeviceId(deviceId)) return NextResponse.json({ error: "Select a valid device." }, { status: 400 })
   try {
+    if (!(await activeDeviceExists(deviceId))) return NextResponse.json({ error: "Active device not found." }, { status: 404 })
     const [archived] = await db.update(products)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(products.id, productId))
+      .where(and(eq(products.id, productId), eq(products.deviceId, deviceId)))
       .returning({ id: products.id })
     if (!archived) return NextResponse.json({ error: "Product not found." }, { status: 404 })
     return NextResponse.json({ success: true })

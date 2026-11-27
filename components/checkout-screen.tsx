@@ -6,19 +6,23 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock3, Phone, WalletCards } from "lucide-react"
 import { CheckoutPaymentButton } from "@/components/eps-checkout-form"
+import { WalletPaymentButton } from "@/components/wallet-payment-button"
 import type { BrewbotProduct } from "@/lib/products"
 
 type CheckoutScreenProps = {
   product: BrewbotProduct | null
   requestedDeviceId?: string
+  maintainerName?: string | null
+  maintainerContact?: string | null
 }
 
-export function CheckoutScreen({ product, requestedDeviceId }: CheckoutScreenProps) {
+export function CheckoutScreen({ product, requestedDeviceId, maintainerName, maintainerContact }: CheckoutScreenProps) {
   const router = useRouter()
   const validDeviceId = requestedDeviceId && /^[A-Z0-9_-]{1,64}$/.test(requestedDeviceId)
     ? requestedDeviceId
     : null
   const deviceHomePath = validDeviceId ? `/${encodeURIComponent(validDeviceId)}` : "/"
+  const maintainerPhoneHref = maintainerContact?.replace(/[^\d+]/g, "")
   const [seconds, setSeconds] = useState(45)
   const [rfidOpen, setRfidOpen] = useState(false)
 
@@ -61,6 +65,7 @@ export function CheckoutScreen({ product, requestedDeviceId }: CheckoutScreenPro
           <b>{(product.pricePaisa / 100).toLocaleString("en-BD", { maximumFractionDigits: 2 })} Tk</b>
         </section>
         <footer className="checkout-payment-actions">
+          <WalletPaymentButton productId={product.id} deviceId={validDeviceId} pricePaisa={product.pricePaisa} />
           <button className="checkout-rfid-button" type="button" onClick={() => setRfidOpen(true)}>
             <WalletCards size={18} aria-hidden="true" /> Pay with RFID Card
           </button>
@@ -70,20 +75,24 @@ export function CheckoutScreen({ product, requestedDeviceId }: CheckoutScreenPro
       {rfidOpen && (
         <div className="kiosk-overlay" role="presentation" onClick={() => setRfidOpen(false)}>
           <section className="kiosk-modal checkout-rfid-modal" role="dialog" aria-modal="true" aria-labelledby="rfid-title" onClick={(event) => event.stopPropagation()}>
-            <button className="kiosk-modal-close" onClick={() => setRfidOpen(false)} aria-label="Close">×</button>
-            <WalletCards size={28} />
-            <h2 id="rfid-title" className="rfid-subscription-title">Get your free RFID subscription</h2>
+            <button className="kiosk-modal-close" type="button" onClick={() => setRfidOpen(false)} aria-label="Close">×</button>
+            <WalletCards size={28} aria-hidden="true" />
+            <h2 id="rfid-title">Pay with RFID Card</h2>
             <div className="rfid-instruction-highlight">
-              <p><strong>Hold your RFID card in front of the machine&apos;s card reader.</strong></p>
-              <p>Wait up to 60 seconds for your order to dispense.</p>
+              <p><strong>Put your RFID card in front of the machine&apos;s card reader.</strong></p>
+              <p>Dispensing will start within 60 seconds.</p>
             </div>
-            <p className="rfid-no-card-help"><strong>No card?</strong> Bring your university ID or contact the hall machine coordinator.</p>
+            <p className="rfid-no-card-help"><strong>No card?</strong> Contact the machine maintainer to get a free RFID subscription card using your university ID card.</p>
             <address className="checkout-rfid-contact">
-              <strong>Bruce Wayne</strong>
-              <span>221B Baker Street, Jagannath Hall</span>
-              <a href="tel:+8801700000221"><Phone size={15} aria-hidden="true" /> +880 1700-000-221</a>
+              <strong>{maintainerName || "Device maintainer"}</strong>
+              {maintainerContact && maintainerPhoneHref && (
+                <a href={`tel:${maintainerPhoneHref}`}><Phone size={15} aria-hidden="true" /> {maintainerContact}</a>
+              )}
+              {(!maintainerContact || !maintainerPhoneHref) && (
+                <span>No contact is listed. Please ask the campus office or device administrator.</span>
+              )}
             </address>
-            <button className="kiosk-checkout-link" onClick={() => setRfidOpen(false)}>Got it</button>
+            <button className="kiosk-checkout-link" type="button" onClick={() => setRfidOpen(false)}>Got it</button>
           </section>
         </div>
       )}

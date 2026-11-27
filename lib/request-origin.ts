@@ -20,6 +20,32 @@ function normalizeOrigin(value: string): string | null {
   }
 }
 
+export function getPublicRequestOrigin(request: NextRequest) {
+  const codespaceName = process.env.CODESPACE_NAME
+  const forwardingDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN
+  if (codespaceName && forwardingDomain) {
+    const codespaceOrigin = normalizeOrigin(`${codespaceName}-3000.${forwardingDomain}`)
+    if (codespaceOrigin) return codespaceOrigin
+  }
+
+  const browserOrigin = request.headers.get("origin")
+  if (request.headers.get("sec-fetch-site") === "same-origin" && browserOrigin) {
+    const normalized = normalizeOrigin(browserOrigin)
+    if (normalized) return normalized
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim()
+  const host = forwardedHost || request.headers.get("host")
+  const protocol = forwardedProtocol || request.nextUrl.protocol.replace(":", "")
+  if (host && (protocol === "http" || protocol === "https")) {
+    const forwardedOrigin = normalizeOrigin(`${protocol}://${host}`)
+    if (forwardedOrigin) return forwardedOrigin
+  }
+
+  return request.nextUrl.origin
+}
+
 export function isSameOriginRequest(request: NextRequest) {
   const origin = normalizeOrigin(request.headers.get("origin") ?? "")
   if (!origin) return false
