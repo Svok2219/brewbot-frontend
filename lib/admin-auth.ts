@@ -45,12 +45,13 @@ function readAdminSessionToken(token: string) {
 }
 
 export function adminSessionCookieOptions() {
-  const previewFrame = process.env.NODE_ENV === "development" && Boolean(process.env.V0_RUNTIME_URL)
-  const secure = process.env.NODE_ENV === "production" || previewFrame
+  const isDevelopment = process.env.NODE_ENV === "development"
+  const secure = process.env.NODE_ENV === "production" || isDevelopment
   return {
     httpOnly: true,
     secure,
-    sameSite: previewFrame ? ("none" as const) : ("lax" as const),
+    sameSite: isDevelopment ? ("none" as const) : ("lax" as const),
+    partitioned: isDevelopment,
     path: "/" as const,
     maxAge: ADMIN_SESSION_DURATION_SECONDS,
   }
